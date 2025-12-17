@@ -29,7 +29,7 @@ import (
 */
 
 func main() {
-	freshIDs := []int{}
+	uniqueRanges := [][2]int{}
 
 	input, err := os.Open("./cmd/day5/input.txt")
 	if err != nil {
@@ -60,16 +60,56 @@ func main() {
 			panic(fmt.Errorf("Failed to parse ID range stop: %w", err))
 		}
 
-		for id := start; id <= stop; id++ {
-			if !slices.Contains(freshIDs, id) {
-				// ISSUE: freshIDs gets so big that slice.Contains
-				// takes a long time to execute. And it must be
-				// executed for EVERY id in the range.
-				// Likely solution: Use simple addition and subtraction
-				freshIDs = append(freshIDs, id)
+		// Merge overlapping ranges
+
+		var insertIndex int = -1
+		var removeIndex int = -1
+
+		for i, uniqueRange := range uniqueRanges {
+			if (start >= uniqueRange[0] && start <= uniqueRange[1]) ||
+				(stop >= uniqueRange[0] && stop <= uniqueRange[1]) ||
+				(uniqueRange[0] >= start && uniqueRange[0] <= stop) ||
+				(uniqueRange[1] >= start && uniqueRange[1] <= stop) {
+				// Ranges overlap
+				start = min(start, uniqueRange[0])
+				stop = max(stop, uniqueRange[1])
+
+				if insertIndex == -1 {
+					insertIndex = i
+				}
+				removeIndex = i + 1
+			} else if stop < uniqueRange[0] {
+				// stop is before start
+				if insertIndex == -1 {
+					insertIndex = i
+				}
+				break
 			}
+		}
+
+		if removeIndex > -1 {
+			uniqueRanges = slices.Delete(
+				uniqueRanges,
+				insertIndex,
+				removeIndex,
+			)
+		}
+
+		if insertIndex > -1 {
+			uniqueRanges = slices.Insert(
+				uniqueRanges,
+				insertIndex,
+				[2]int{start, stop},
+			)
+		} else {
+			uniqueRanges = append(uniqueRanges, [2]int{start, stop})
 		}
 	}
 
-	fmt.Println("Number of fresh ID's:", len(freshIDs))
+	var numFreshIDs int = 0
+	for _, uniqueRange := range uniqueRanges {
+		numFreshIDs += uniqueRange[1] - uniqueRange[0] + 1
+	}
+
+	fmt.Println("Number of fresh ID's:", numFreshIDs)
 }
