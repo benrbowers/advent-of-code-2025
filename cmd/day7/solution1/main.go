@@ -35,7 +35,15 @@ func main() {
 
 	scanner := bufio.NewScanner(input)
 
+	var row int = 0
+
 	for scanner.Scan() {
+		row++
+		if row%2 == 0 {
+			// Since beams are vertical, we can skip empty lines
+			continue
+		}
+
 		newBeamRow := []int{}
 		line := scanner.Text()
 
