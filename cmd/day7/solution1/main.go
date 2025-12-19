@@ -25,7 +25,7 @@ import (
 */
 
 func main() {
-	beams := [][]int{{}} // Init with empty row
+	prevBeamRow := []int{}
 	var splitCount int = 0
 
 	input, err := os.Open("./cmd/day7/input.txt")
@@ -47,11 +47,11 @@ func main() {
 		newBeamRow := []int{}
 		line := scanner.Text()
 
-		if len(beams) == 1 {
+		if row == 1 {
 			sourceIndex := strings.Index(line, "S")
 			newBeamRow = append(newBeamRow, sourceIndex)
 		} else {
-			for _, beam := range beams[len(beams)-1] {
+			for _, beam := range prevBeamRow {
 				if line[beam] == '^' {
 					splitCount++
 					if len(newBeamRow) == 0 || newBeamRow[len(newBeamRow)-1] != beam-1 {
@@ -67,7 +67,7 @@ func main() {
 			}
 		}
 
-		beams = append(beams, newBeamRow)
+		prevBeamRow = newBeamRow
 	}
 
 	fmt.Println("Number of times beam split:", splitCount)
