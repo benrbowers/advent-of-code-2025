@@ -36,11 +36,12 @@ import (
 // is very expensive.
 // Cheaper: For all EMPTY SQUARES, check if in rect's
 // range
+// Even cheaper: For all BOUNDARY SQUARES, check if in
+// rect's range, IGNORE EDGES.
 
 // 1. Find shape boundary
-// 2. Collect all non-green/red tiles
-// 3. Collect all pairs, order by area desc
-// 4. For largest pairs, which has no non-green/red tiles
+// 2. Collect all pairs, order by area desc
+// 3. For largest pairs, which has no inner boundary squares
 
 type Rectangle struct {
 	corners [2]int // indexes of `redTiles`
@@ -50,7 +51,6 @@ type Rectangle struct {
 func main() {
 	redTiles := [][2]int{}
 	boundary := [][2]int{}
-	invalidTiles := [][2]int{}
 	var minX int = math.MaxInt
 	var maxX int = 0
 	var minY int = math.MaxInt
@@ -58,7 +58,7 @@ func main() {
 	redPairs := []Rectangle{}
 	var largestGreenRedRectangle Rectangle
 
-	input, err := os.Open("./cmd/day9/test.txt")
+	input, err := os.Open("./cmd/day9/input.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -138,35 +138,7 @@ func main() {
 		}
 	}
 
-	// Collect invalid tiles within shape rect
-	// (inside the rect, OUTSIDE the green shape)
-	// BOTTLENECK: Collecting EVERY invalid square takes too long
-	// Instead, for each large rect, check if boundary is contained in rect range
-	// N of boundary is MUCH smaller than N (area) of invalid tiles.
-
-	for x := minX; x <= maxX; x++ {
-		var insideBoundary bool = false
-		var insideShape bool = false
-		for y := minY; y <= maxY; y++ {
-			if slices.Contains(boundary, [2]int{x, y}) {
-				insideBoundary = true
-				continue
-			}
-
-			if insideBoundary {
-				if x != minX && maxX != x &&
-					y != minY && y != maxY {
-					insideShape = !insideShape
-				}
-				insideBoundary = false
-			}
-
-			if !insideShape {
-				invalidTiles = append(invalidTiles, [2]int{x, y})
-			}
-		}
-	}
-
+	// Collect all possible pairs of corners
 	for i := 0; i < len(redTiles)-1; i++ {
 		for j := i + 1; j < len(redTiles); j++ {
 			dx := abs(redTiles[j][0]-redTiles[i][0]) + 1
@@ -185,21 +157,20 @@ func main() {
 		return b.area - a.area
 	})
 
-	// Find first pair with NO invalid tiles
+	// Find first pair with NO inner boundary tiles
 PairLoop:
 	for _, pair := range redPairs {
 		c1 := redTiles[pair.corners[0]]
 		c2 := redTiles[pair.corners[1]]
+		minX := min(c1[0], c2[0]) + 1
+		maxX := max(c1[0], c2[0]) - 1
+		minY := min(c1[1], c2[1]) + 1
+		maxY := max(c1[1], c2[1]) - 1
 
-		for _, tile := range invalidTiles {
-			minX := min(c1[0], c2[0])
-			maxX := max(c1[0], c2[0])
-			minY := min(c1[1], c2[1])
-			maxY := max(c1[1], c2[1])
-
+		for _, tile := range boundary {
 			if tile[0] >= minX && tile[0] <= maxX &&
 				tile[1] >= minY && tile[1] <= maxY {
-				// Rectangle contains invalid tile
+				// Rectangle contains inner boundary tile
 				continue PairLoop
 			}
 		}
